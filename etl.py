@@ -19,7 +19,7 @@ engine = create_engine(DATABASE_URI)
 
 # Inicializa el contador
 insert_count = 0
-# max_insert_count = 100
+chunk_size = 100000  # Número de filas por chunk
 
 try:
     # Imprimir las tablas de la base de datos
@@ -59,55 +59,63 @@ try:
             logging.info("Primeros registros del DataFrame:")
             logging.info("%s", df_final.head())
 
+            # # filas y columnas
+            # num_filas, num_columnas = df_final.shape
+            # logging.info("El DataFrame tiene %d filas y %d columnas.", num_filas, num_columnas)
+
             # Usar la sesión de SQLAlchemy
             with sessionmaker(bind=engine)() as session:
-                for index, row in df_final.iterrows():
-                    # Convertir el tiempo de milisegundos a fecha
-                    fecha = datetime.fromtimestamp(row['t'] / 1000.0)
-                    dia, mes, anio = fecha.day, fecha.month, str(fecha.year)
 
-                    # Insertar en la tabla Fecha
-                    insert_query_fecha = text(
-                        "INSERT INTO Fecha (fecha, dia, mes, anio) VALUES (:fecha, :dia, :mes, :anio) RETURNING id"
-                    )
-                    fecha_id = session.execute(insert_query_fecha, {'fecha': fecha, 'dia': dia, 'mes': mes, 'anio': anio}).scalar()
+                # Iterar sobre el DataFrame en chunks
+                for start in range(0, len(df_final), chunk_size):
+                    chunk = df_final.iloc[start:start + chunk_size]
 
-                    # Verificar si el tipo de transacción ya existe
-                    descripcion = row['S']
-                    id = row['i']
-                    check_query_tipo = text(
-                        "SELECT id FROM Tipo_transaccion WHERE id = :id AND descripcion = :descripcion")
-                    transaccion_tipo_id = session.execute(check_query_tipo,
-                                                          {'id': id, 'descripcion': descripcion}).scalar()
+                    for index, row in chunk.iterrows():
+                        # Convertir el tiempo de milisegundos a fecha
+                        fecha = datetime.fromtimestamp(row['t'] / 1000.0)
+                        dia, mes, anio = fecha.day, fecha.month, str(fecha.year)
 
-                    # Si no existe, insertarlo
-                    if transaccion_tipo_id is None:
-                        insert_query_tipo = text(
-                            "INSERT INTO Tipo_transaccion (id, descripcion) VALUES (:id, :descripcion) RETURNING id"
+                        # Insertar en la tabla Fecha
+                        insert_query_fecha = text(
+                            "INSERT INTO Fecha (fecha, dia, mes, anio) VALUES (:fecha, :dia, :mes, :anio) RETURNING id"
                         )
-                        transaccion_tipo_id = session.execute(insert_query_tipo,
+                        fecha_id = session.execute(insert_query_fecha,
+                                                   {'fecha': fecha, 'dia': dia, 'mes': mes, 'anio': anio}).scalar()
+
+                        # Verificar si el tipo de transacción ya existe
+                        descripcion = row['S']
+                        id = row['i']
+                        check_query_tipo = text(
+                            "SELECT id FROM Tipo_transaccion WHERE id = :id AND descripcion = :descripcion"
+                        )
+                        transaccion_tipo_id = session.execute(check_query_tipo,
                                                               {'id': id, 'descripcion': descripcion}).scalar()
 
-                    # Insertar los datos en la tabla Transaccion
-                    insert_query_transacciones = text(
-                        "INSERT INTO Transacciones (fecha_id, transaccion_tipo_uuid, simbolo, precio, valor) VALUES (:fecha_id, :transaccion_tipo_id, :simbolo, :precio, :valor)"
-                    )
-                    session.execute(insert_query_transacciones, {
-                        'fecha_id': fecha_id,
-                        'transaccion_tipo_id': transaccion_tipo_id,
-                        'simbolo': row['s'],
-                        'precio': float(row['p']),
-                        'valor': float(row['v'])
-                    })
+                        # Si no existe, insertarlo
+                        if transaccion_tipo_id is None:
+                            insert_query_tipo = text(
+                                "INSERT INTO Tipo_transaccion (id, descripcion) VALUES (:id, :descripcion) RETURNING id"
+                            )
+                            transaccion_tipo_id = session.execute(insert_query_tipo,
+                                                                  {'id': id, 'descripcion': descripcion}).scalar()
 
-                    # insert_count += 1
-                    # if insert_count >= max_insert_count:
-                    #     logging.info("Se alcanzó el límite de inserciones. Deteniendo el proceso.")
-                    #     break
+                        # Insertar los datos en la tabla Transaccion
+                        insert_query_transacciones = text(
+                            "INSERT INTO Transacciones (fecha_id, transaccion_tipo_uuid, simbolo, precio, valor) VALUES (:fecha_id, :transaccion_tipo_id, :simbolo, :precio, :valor)"
+                        )
+                        session.execute(insert_query_transacciones, {
+                            'fecha_id': fecha_id,
+                            'transaccion_tipo_id': transaccion_tipo_id,
+                            'simbolo': row['s'],
+                            'precio': float(row['p']),
+                            'valor': float(row['v'])
+                        })
 
-                # Confirmar los cambios
-                session.commit()
-                logging.info("Datos insertados correctamente.")
+                        insert_count += 1
+
+
+                    session.commit()
+                    logging.info("Datos insertados correctamente para los registros %d a %d.", start, start + len(chunk) - 1)
 
 except Exception as e:
     logging.error("Ocurrió un error: %s", e)
