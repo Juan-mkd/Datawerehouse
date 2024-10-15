@@ -21,6 +21,8 @@ engine = create_engine(DATABASE_URI)
 insert_count = 0
 chunk_size = 100000  # Número de filas por chunk
 
+
+
 try:
     # Imprimir las tablas de la base de datos
     inspector = inspect(engine)
@@ -66,7 +68,7 @@ try:
             # Usar la sesión de SQLAlchemy
             with sessionmaker(bind=engine)() as session:
 
-                # Iterar sobre el DataFrame en chunks
+                # Iterar sobre el DataFrame en chunks, tecnica de scalin to large datasets
                 for start in range(0, len(df_final), chunk_size):
                     chunk = df_final.iloc[start:start + chunk_size]
 
@@ -88,6 +90,7 @@ try:
                         check_query_tipo = text(
                             "SELECT id FROM Tipo_transaccion WHERE id = :id AND descripcion = :descripcion"
                         )
+
                         transaccion_tipo_id = session.execute(check_query_tipo,
                                                               {'id': id, 'descripcion': descripcion}).scalar()
 
