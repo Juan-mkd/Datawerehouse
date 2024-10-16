@@ -23,10 +23,22 @@ class ETLController:
         # 1. Extraer datos
         response = self.extractor.extract_data_from_api()  # Llama al extractor
 
-        # Si la respuesta es válida, muestra el contenido
-       
-        print(response.content)  # Muestra el contenido del ZIP
-       
+        print(response) # Muestra el contenido del ZIP
+
+
+
+        jsonl_filename = self.extractor.extract_data_from_api()  # Llama al extractor y obtiene el nombre del archivo JSONL
+
+        # Mostrar el nombre del archivo JSONL, que el nombre es un str
+        print(f"Nombre del archivo JSONL: {jsonl_filename}")
+
+        # Leer el contenido del archivo JSONL
+        generador = self.extractor.read_jsonl_file(jsonl_filename)
+
+        # Iterar sobre el generador para obtener los objetos JSON
+        for objeto in generador:
+            print(objeto)
+
 
 
 etl_controller = ETLController()
