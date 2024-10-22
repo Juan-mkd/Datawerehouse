@@ -1,17 +1,15 @@
-# models/loader.py
+# models/load.py
+
+import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from config import get_connection_string
 
 class Loader:
-    def __init__(self, db_url):
-        self.engine = create_engine(db_url)
-        self.Session = sessionmaker(bind=self.engine)
+    def __init__(self):
+        # Obtener la cadena de conexión
+        self.connection_string = get_connection_string()
+        self.engine = create_engine(self.connection_string)
 
-    def load_data(self, data):
-        session = self.Session()
-        # Cambia 'your_dest_table_name' por el nombre de tu tabla de destino
-        for item in data:
-            session.execute("INSERT INTO your_dest_table_name (name, price_with_tax) VALUES (:name, :price_with_tax)",
-                            {"name": item['name'], "price_with_tax": item['price_with_tax']})
-        session.commit()
-        session.close()
+    def save_to_postgres(self, dataframe, table_name):
+        # Guardar el DataFrame en una tabla de PostgreSQL
+        dataframe.to_sql(table_name, self.engine, if_exists='replace', index=False)

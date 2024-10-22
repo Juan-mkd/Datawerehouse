@@ -9,8 +9,6 @@ consultar si uno puedo acceder a un archivo global desde un archivo local
 """
 # from urls import API_URL
 
-
-
 class Extractor:
     def __init__(self, api_url):
         self.api_url = api_url
@@ -24,8 +22,8 @@ class Extractor:
         zipfile3 = ' '.join(zipfile2)
         # print(zipfile1)
         # print(zipfile2)
-        print("mostrando el type file")
-        print(type(zipfile3))
+        # print("mostrando el type file")
+        # print(type(zipfile3))
         return zipfile3 # Devuelve la respuesta para su uso posterior
 
 

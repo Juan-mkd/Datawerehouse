@@ -1,14 +1,18 @@
-import streamlit as st
+from sqlalchemy import create_engine, exc, text
+from config import get_connection_string
 
-# Título de la aplicación
-st.title("Aplicación de Saludo Personalizado")
+def test_connection():
+    connection_string = get_connection_string()
+    engine = create_engine(connection_string)
 
-# Entrada del usuario
-nombre = st.text_input("Ingresa tu nombre:")
+    try:
+        with engine.connect() as connection:
+            # Ejecutar la consulta en la tabla 'fecha'
+            result = connection.execute(text("SELECT * FROM fecha"))
+            for row in result:
+                print(row)  # Imprimir cada fila devuelta
+    except exc.SQLAlchemyError as e:
+        print("Connection failed:", str(e))
 
-# Botón para mostrar el saludo
-if st.button("Saludar"):
-    if nombre:
-        st.write(f"¡Hola, {nombre}! Bienvenido a la aplicación.")
-    else:
-        st.write("Por favor, ingresa tu nombre.")
+if __name__ == "__main__":
+    test_connection()
