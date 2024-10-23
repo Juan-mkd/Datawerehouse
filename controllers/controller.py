@@ -44,6 +44,7 @@ class ETLController:
         # for objeto in generador:
         #     print(objeto)
 
+
     def run_etl_process(self):
         # Validar la conexión a la base de datos
         if not self.loader.check_connection():
@@ -56,9 +57,7 @@ class ETLController:
         # Mostrar el contenido del DataFrame
         print(content)
 
-        # Guardar el DataFrame en PostgreSQL
-        self.loader.save_to_postgres(content, 'experiment')  # Asegúrate de que el nombre de la tabla sea correcto
-        print("Datos guardados en PostgreSQL.")
+        
 
 
 
