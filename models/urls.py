@@ -1,1 +1,16 @@
-API_URL = "https://github.com/sferez/BybitMarketData/raw/main/data/BTC/2024-02-12/trades_BTC_2024-02-12.zip"
+import argparse
+
+# Crear el parser
+parser = argparse.ArgumentParser(description='url para extraer datos.')
+
+# Agregar un argumento 
+parser.add_argument('url', type=str, help='api')
+
+# Agregar una opción para
+parser.add_argument('--r', type=str, default='url', help='url del la api')
+
+# Parsear los argumentos
+args = parser.parse_args()
+
+# Imprimir 
+print(f'{args.saludo}, {args.r}')
