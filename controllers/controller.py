@@ -53,9 +53,11 @@ class ETLController:
 
         # Transformar a DataFrame
         content = self.transformer.jsonl_to_dataframe()
+        
 
         # Mostrar el contenido del DataFrame
         print(content)
+        print("Conexión a la base de datos establecida con éxito.")
 
         
 

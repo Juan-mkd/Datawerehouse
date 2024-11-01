@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 # Configuraciones generales del proceso ETL
 # SOURCE_DB_URL = "mssql+pyodbc://username:password@source_db?driver=ODBC+Driver+17+for+SQL+Server"
 # DEST_DB_URL = "mssql+pyodbc://username:password@dest_db?driver=ODBC+Driver+17+for+SQL+Server"
@@ -6,16 +7,20 @@ import os
 # https://github.com/sferez/BybitMarketData/raw/main/data/ETH/2024-02-12/trades_ETH_2024-02-12.zip
 # https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip
 API_URL = "https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip"
-
+load_dotenv()
 # config.py
 
+
 DATABASE_CONFIG = {
-    'server': 'localhost',
-    'port': '5433',
-    'database': 'datadb',
-    'username': 'juan',
-    'password': '147'
+    'server': os.getenv('DB_SERVER'),
+    'port': os.getenv('DB_PORT'),
+    'database': os.getenv('DB_DATABASE'),
+    'username': os.getenv('DB_USERNAME'),
+    'password': os.getenv('DB_PASSWORD')
 }
+
+
+
 
 def get_connection_string():
     server = DATABASE_CONFIG['server']
