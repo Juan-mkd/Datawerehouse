@@ -1,48 +1,48 @@
-import pandas as pd
-from sqlalchemy import create_engine, exc, text
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+from datetime import datetime
 from config import get_connection_string
-
 
 class DataLoader:
     def __init__(self):
-        # Initialize the connection string and engine
         self.connection_string = get_connection_string()
         self.engine = create_engine(self.connection_string)
 
+    def load_fecha(self, df_chunk):
+        """Cargar solo la columna 't' (fecha) en la tabla 'Fecha' a partir de un DataFrame."""
+        fecha_values_list = []  # Lista para almacenar los valores a insertar
 
-    def insert_fecha(self, connection, fecha_records):
-        fecha_query = """
-            INSERT INTO Fecha (fecha, dia, mes, anio)
-            VALUES (%s, %s, %s, %s)
-            RETURNING id, fecha;
-        """
-        fecha_id_map = {}
-        for record in fecha_records:
-            result = connection.execute(fecha_query, record)
-            fecha_id = result.fetchone()[0]
-            fecha_id_map[record[0]] = fecha_id  # Almacena el ID por fecha
+        for _, row in df_chunk.iterrows():
+            try:
+                # Convertir 't' (timestamp en milisegundos) a un formato adecuado (timestamp en segundos)
+                fecha = datetime.utcfromtimestamp(row["t"] / 1000.0)  # Convertir a datetime
+                
+                # Agregar solo la fecha convertida a la lista de valores
+                fecha_values_list.append({
+                    "fecha": fecha
+                })
 
-        return fecha_id_map
+            except Exception as e:
+                print(f"Error al procesar la fecha {row['t']}: {e}")
 
-    def insert_transacciones(self, connection, transacciones_records):
-        """Insert records into Transacciones table."""
-        transacciones_query = text("""
-            INSERT INTO Transacciones (fecha_id, transaccion_tipo_id, simbolo, precio, valor)
-            VALUES (:fecha_id, :transaccion_tipo_id, :simbolo, :precio, :valor);
-        """)
+        if fecha_values_list:
+            try:
+                # Usar text() para la consulta con parámetros
+                query = text(
+                    "INSERT INTO Fecha (fecha) "
+                    "VALUES (:fecha) "
+                    "ON CONFLICT (fecha) DO NOTHING;"
+                )
+                
+                # Ejecutar la consulta con los valores usando execute
+                with self.engine.connect() as connection:
+                    connection.execute(query, fecha_values_list)
+                print(f"Se cargaron {len(fecha_values_list)} fechas correctamente.")
+            except SQLAlchemyError as e:
+                # Imprimir el mensaje completo del error
+                print(f"Error al cargar las fechas en la base de datos: {e}")  # Detalle del error en la base de datos
 
-        for record in transacciones_records:
-            fecha_id, transaccion_tipo_id, simbolo, precio, valor = record
-            connection.execute(transacciones_query, {
-                'fecha_id': fecha_id,
-                'transaccion_tipo_id': transaccion_tipo_id,
-                'simbolo': simbolo,
-                'precio': precio,
-                'valor': valor
-            })
-
-    def get_transaccion_tipo_id(self, trade_side):
-        """Get the UUID for the transaction type."""
-        query = f"SELECT id FROM tipo_transaccion WHERE descripcion = '{trade_side}';"
-        with self.engine.connect() as connection:
-            return connection.execute(query).scalar()
+    def load_data_to_db(self, df):
+        """Cargar solo las fechas a la base de datos."""
+        print("Cargando fechas a la base de datos...")
+        self.load_fecha(df)  # Llama al método load_fecha para cargar solo la fecha
