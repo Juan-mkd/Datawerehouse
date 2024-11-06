@@ -6,7 +6,12 @@ from dotenv import load_dotenv
 # https://github.com/sferez/BybitMarketData/raw/main/data/BTC/2024-02-12/trades_BTC_2024-02-12.zip
 # https://github.com/sferez/BybitMarketData/raw/main/data/ETH/2024-02-12/trades_ETH_2024-02-12.zip
 # https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip
-API_URL = "https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip"
+# API_URL = "https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip"
+
+from sqlalchemy import create_engine, exc
+
+
+
 load_dotenv()
 # config.py
 
@@ -33,5 +38,31 @@ def get_connection_string():
     connection_string = (
         f"postgresql+psycopg2://{username}:{password}@{server}:{port}/{database}"
     )
-
+    
     return connection_string
+
+
+
+
+
+class DataLoader:
+    def __init__(self):
+        self.connection_string = get_connection_string()
+        self.engine = create_engine(self.connection_string)
+
+    def check_connection(self):
+        """Check the database connection."""
+        try:
+            with self.engine.connect() as connection:
+                print("Conexión exitosa a la base de datos.")
+                return True
+        except exc.SQLAlchemyError as e:
+            print(f"Error conectando a la base de datos: {e}")
+            return False
+
+if __name__ == "__main__":
+    # Crear una instancia de DataLoader
+    data_loader = DataLoader()
+
+    # Verificar la conexión
+    data_loader.check_connection()
