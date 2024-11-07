@@ -1,48 +1,83 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
+import pandas as pd
+import os,uuid,random,sys
 from datetime import datetime
-from config import get_connection_string
+from sqlalchemy import create_engine, text,inspect
+from sqlalchemy.orm import sessionmaker
+from config import DataConexion
+from models.transform import Transformer  # Asegúrate de importar tu clase Transformer
+from models.models import TipoTransaccion,Transacciones,Fecha
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 class DataLoader:
     def __init__(self):
-        self.connection_string = get_connection_string()
-        self.engine = create_engine(self.connection_string)
+        self.data_conexion = DataConexion()
+        self.engine = self.data_conexion.engine
+        self.Session = sessionmaker(bind=self.engine)
 
-    def load_fecha(self, df_chunk):
-        """Cargar solo la columna 't' (fecha) en la tabla 'Fecha' a partir de un DataFrame."""
-        fecha_values_list = []  # Lista para almacenar los valores a insertar
+    def print_dataframe(self, df):
+        if df is not None and not df.empty:
+            print("DataFrame cargado en el archivo load.py :")
+            print(df)
+        else:
+            print("No se pudo cargar el DataFrame. El archivo podría estar vacío o malformado.")
 
-        for _, row in df_chunk.iterrows():
-            try:
-                # Convertir 't' (timestamp en milisegundos) a un formato adecuado (timestamp en segundos)
-                fecha = datetime.utcfromtimestamp(row["t"] / 1000.0)  # Convertir a datetime
-                
-                # Agregar solo la fecha convertida a la lista de valores
-                fecha_values_list.append({
-                    "fecha": fecha
-                })
+    def show_tables(self):
+        """Mostrar las tablas de la base de datos."""
+        with self.Session() as session:
+            inspector = inspect(self.engine)
+            tables = inspector.get_table_names()  # Obtener el nombre de las tablas
+            if tables:
+                print("Tablas en la base de datos:")
+                for table in tables:
+                    print(f"- {table}")
+            else:
+                print("No se encontraron tablas en la base de datos.")
 
-            except Exception as e:
-                print(f"Error al procesar la fecha {row['t']}: {e}")
 
-        if fecha_values_list:
-            try:
-                # Usar text() para la consulta con parámetros
-                query = text(
-                    "INSERT INTO Fecha (fecha) "
-                    "VALUES (:fecha) "
-                    "ON CONFLICT (fecha) DO NOTHING;"
+
+    
+
+
+    def insert_sample_data(self, df):
+        """Insertar registros de ejemplo en las tablas usando un DataFrame."""
+        with self.Session() as session:
+            # Iterar sobre cada fila del DataFrame
+            for index, row in df.iterrows():
+                # Insertar un registro en tipo_transaccion basado en la columna 'L'
+                tipo_transaccion = TipoTransaccion(descripcion=row['L'])  # 'L' es el tipo de tick
+                session.add(tipo_transaccion)
+                session.commit()  # Confirmar la transacción para guardar el registro
+
+                # Obtener el ID del tipo de transacción recién insertado
+                tipo_transaccion_id = tipo_transaccion.id
+
+                # Desglosar la columna 'T' para obtener la fecha y crear un registro en fecha
+                timestamp = row['T'] / 1000  # Convertir de milisegundos a segundos
+                fecha_datetime = datetime.fromtimestamp(timestamp)
+
+                # Insertar un registro en fecha
+                fecha = Fecha(
+                    fecha=fecha_datetime.date(),
+                    dia=fecha_datetime.day,
+                    mes=fecha_datetime.month,
+                    anio=str(fecha_datetime.year)
                 )
-                
-                # Ejecutar la consulta con los valores usando execute
-                with self.engine.connect() as connection:
-                    connection.execute(query, fecha_values_list)
-                print(f"Se cargaron {len(fecha_values_list)} fechas correctamente.")
-            except SQLAlchemyError as e:
-                # Imprimir el mensaje completo del error
-                print(f"Error al cargar las fechas en la base de datos: {e}")  # Detalle del error en la base de datos
+                session.add(fecha)
+                session.commit()  # Confirmar la transacción para guardar el registro
 
-    def load_data_to_db(self, df):
-        """Cargar solo las fechas a la base de datos."""
-        print("Cargando fechas a la base de datos...")
-        self.load_fecha(df)  # Llama al método load_fecha para cargar solo la fecha
+                # Obtener el ID de la fecha recién insertada
+                fecha_id = fecha.id
+
+                # Insertar un registro en Transacciones usando el ID de la transacción del DataFrame
+                transaccion = Transacciones(
+                    fecha_id=fecha_id,
+                    transaccion_tipo_id=tipo_transaccion_id,
+                    simbolo=row['s'],  # 's' es el símbolo
+                    precio=row['p'],    # 'p' es el precio
+                    valor=row['v'],     # 'v' es el volumen
+                )
+                session.add(transaccion)
+                session.commit()  # Confirmar la transacción
+
+            print("Registros de ejemplo insertados en la base de datos.")

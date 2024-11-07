@@ -19,7 +19,6 @@ class ETLController:
         self.API_URL = API_URL
         self.extractor = Extractor(API_URL)  # Instanciamos Extractor
         self.transformer = Transformer(self.extractor)  # Pasamos la instancia de Extractor a Transformer
-        self.conexionDB = DataConexion()  # Conexión a la base de datos
         self.loader = DataLoader()  # Instanciamos el cargador de datos
 
     @staticmethod
@@ -32,6 +31,8 @@ class ETLController:
         full_url = args.base_url + args.url
         return full_url
 
+
+
     def conexion_API(self):
         """Verificar conexión a la API."""
         print(f"Verificando la URL: {self.API_URL}")
@@ -42,6 +43,7 @@ class ETLController:
         else:
             print("No se puede conectar a la API")
 
+
     def run_etl_extract(self):
         """Extraer datos de la API y devolver el nombre del archivo JSONL."""
         try:
@@ -51,6 +53,9 @@ class ETLController:
         except Exception as e:
             print(f"Error al extraer los datos: {e}")
             return None
+
+
+
 
     def show_dataframe(self, jsonl_filename2):
         """Mostrar el DataFrame a partir del archivo JSONL."""
@@ -66,27 +71,16 @@ class ETLController:
             print(f"Error al procesar el archivo JSONL: {e}")
             return None
 
-    def validate_db_connection(self):
-        """Verificar conexión a la base de datos desde DataLoader."""
-        try:
-            # Crear una instancia de DataConexion
-            data_loader = DataConexion()
 
-            # Verificar la conexión
-            if data_loader.check_connection():
-                print("La conexión a la base de datos fue exitosa.")
-            else:
-                print("La conexión a la base de datos falló. Por favor, revisa la configuración.")
-        except Exception as e:
-            print(f"Error al verificar la conexión a la base de datos: {e}")
+
 
     def load_data_to_db(self, df):
-        """Cargar solo las fechas a la base de datos."""
-        if df is not None:
-            print("Cargando fechas a la base de datos...")
-            self.loader.load_fecha(df)  # Llama al método load_fecha para cargar solo la fecha
-        else:
-            print("No se pudo cargar los datos, el DataFrame es None.")
+        self.loader.print_dataframe(df)
+        self.loader.show_tables()
+        self.loader.insert_sample_data(df)
+
+
+
 
 
 if __name__ == "__main__":
@@ -105,8 +99,16 @@ if __name__ == "__main__":
     if jsonl_filename2:
         df = etl_controller.show_dataframe(jsonl_filename2)  # Transformar el JSONL a DataFrame
 
-        # Validar la conexión a la base de datos
-        etl_controller.validate_db_connection()  # Aquí se debe llamar a la función
-
         # Cargar los datos en la base de datos
         etl_controller.load_data_to_db(df)
+    
+    
+
+
+
+"""
+https://github.com/sferez/BybitMarketData/raw/main/data/BTC/2024-02-12/trades_BTC_2024-02-12.zip
+https://github.com/sferez/BybitMarketData/raw/main/data/ETH/2024-02-12/trades_ETH_2024-02-12.zip
+https://github.com/sferez/BybitMarketData/raw/main/data/SOL/2024-02-12/trades_SOL_2024-02-12.zip
+
+"""

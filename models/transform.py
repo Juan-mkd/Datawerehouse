@@ -1,6 +1,21 @@
 import pandas as pd
 import json
 
+"""
+    The trade data is collected from the trade.{symbol} channel, which provides the following information:
+    T: the timestamp of the trade
+    s: the trading pair
+    S: the side of the trade (Buy or Sell)
+    v: the quantity of the trade
+    p: the price of the trade
+    L: the tick direction of the trade
+    i: the trade ID
+    BT: whether the trade is a block trade
+
+"""
+
+
+
 class Transformer:
     def __init__(self, extractor):  # Recibimos la instancia de Extractor
         self.extractor = extractor  # Almacenamos la instancia de Extractor
